@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prazo. — painel de trabalhos e provas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="board">
+
+    <header class="board-header">
+      <div class="header-left">
+        <p class="eyebrow">semestre em andamento</p>
+        <h1 class="masthead">Prazo<span class="dot">.</span></h1>
+        <p class="subhead">mural de trabalhos e provas</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-ghost" id="btn-notas" type="button">Notas</button>
+        <button class="btn btn-ghost" id="btn-disciplinas" type="button">Disciplinas</button>
+        <button class="btn btn-ghost" id="btn-exportar" type="button">Exportar</button>
+        <button class="btn btn-ghost" id="btn-importar" type="button">Importar</button>
+        <input type="file" id="arquivo-importacao" accept="application/json" hidden>
+        <button class="btn btn-primary" id="btn-novo" type="button">+ Novo prazo</button>
+      </div>
+    </header>
+
+    <section class="kpi-strip" id="kpi-strip" aria-label="resumo dos prazos">
+      <div class="kpi kpi-atrasado">
+        <span class="kpi-value" id="kpi-atrasados">0</span>
+        <span class="kpi-label">atrasados</span>
+      </div>
+      <div class="kpi kpi-hoje">
+        <span class="kpi-value" id="kpi-hoje">0</span>
+        <span class="kpi-label">vencem hoje</span>
+      </div>
+      <div class="kpi kpi-semana">
+        <span class="kpi-value" id="kpi-semana">0</span>
+        <span class="kpi-label">essa semana</span>
+      </div>
+      <div class="kpi kpi-pendente">
+        <span class="kpi-value" id="kpi-pendentes">0</span>
+        <span class="kpi-label">pendentes no total</span>
+      </div>
+    </section>
+
+    <section class="filter-bar">
+      <label class="search-box">
+        <span class="sr-only">Buscar prazos</span>
+        <input type="search" id="buscar-prazos" placeholder="Buscar prazo ou disciplina...">
+      </label>
+      <div class="tabs" role="tablist" aria-label="filtrar por status">
+        <button class="tab is-active" data-filter-status="todos" type="button">Todos</button>
+        <button class="tab" data-filter-status="pendente" type="button">Pendentes</button>
+        <button class="tab" data-filter-status="atrasado" type="button">Atrasados</button>
+        <button class="tab" data-filter-status="entregue" type="button">Entregues</button>
+      </div>
+      <div class="filter-selects">
+        <select id="filtro-tipo" class="select">
+          <option value="todos">Todos os tipos</option>
+          <option value="prova">Provas</option>
+          <option value="trabalho">Trabalhos</option>
+          <option value="atividade">Atividades</option>
+        </select>
+        <select id="filtro-disciplina" class="select">
+          <option value="todas">Todas as disciplinas</option>
+        </select>
+        <select id="ordenar" class="select">
+          <option value="data-asc">Prazo mais próximo</option>
+          <option value="data-desc">Prazo mais distante</option>
+          <option value="prioridade">Prioridade</option>
+        </select>
+      </div>
+    </section>
+
+    <main class="board-main">
+      <div class="prazo-list" id="prazo-list"></div>
+      <div class="empty-state" id="empty-state" hidden>
+        <p class="empty-title">Nenhum prazo por aqui.</p>
+        <p class="empty-sub">Cadastre uma prova ou trabalho pra começar a organizar o semestre.</p>
+        <button class="btn btn-primary" id="btn-empty-novo" type="button">+ Novo prazo</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: notas -->
+  <div class="modal-overlay" id="modal-notas" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-notas-title">
+      <div class="modal-head">
+        <h2 id="modal-notas-title">Notas</h2>
+        <button class="modal-close" id="fechar-modal-notas" type="button" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="form-nota" class="modal-form">
+        <input type="hidden" id="nota-id">
+        <label class="field">
+          <span class="field-label">Disciplina</span>
+          <input type="text" id="nota-disciplina" list="lista-disciplinas" placeholder="Ex: Cálculo II" required>
+        </label>
+        <div class="notas-bimestres">
+          <label class="field"><span class="field-label">1º bimestre</span><input type="number" id="nota-b1" min="0" max="10" step="0.1" placeholder="0 a 10"></label>
+          <label class="field"><span class="field-label">2º bimestre</span><input type="number" id="nota-b2" min="0" max="10" step="0.1" placeholder="0 a 10"></label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="cancelar-nota">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="salvar-nota">Salvar notas</button>
+        </div>
+      </form>
+      <ul class="notas-lista" id="notas-lista"></ul>
+    </div>
+  </div>
+
+  <!-- Modal: novo/editar prazo -->
+  <div class="modal-overlay" id="modal-prazo" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-prazo-title">
+      <div class="modal-head">
+        <h2 id="modal-prazo-title">Novo prazo</h2>
+        <button class="modal-close" id="fechar-modal-prazo" type="button" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="form-prazo" class="modal-form">
+        <input type="hidden" id="prazo-id">
+
+        <label class="field">
+          <span class="field-label">Título</span>
+          <input type="text" id="prazo-titulo" placeholder="Ex: Prova de Cálculo II — Unidade 2" required>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">Disciplina</span>
+            <input type="text" id="prazo-disciplina" list="lista-disciplinas" placeholder="Ex: Cálculo II" required>
+            <datalist id="lista-disciplinas"></datalist>
+          </label>
+          <label class="field">
+            <span class="field-label">Tipo</span>
+            <select id="prazo-tipo">
+              <option value="prova">Prova</option>
+              <option value="trabalho">Trabalho</option>
+              <option value="atividade">Atividade</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label class="field">
+            <span class="field-label">Data de entrega</span>
+            <input type="date" id="prazo-data" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Hora (opcional)</span>
+            <input type="time" id="prazo-hora">
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Prioridade</span>
+          <div class="prioridade-opcoes">
+            <label class="prioridade-opcao"><input type="radio" name="prioridade" value="baixa"> Baixa</label>
+            <label class="prioridade-opcao"><input type="radio" name="prioridade" value="media" checked> Média</label>
+            <label class="prioridade-opcao"><input type="radio" name="prioridade" value="alta"> Alta</label>
+          </div>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Observações (opcional)</span>
+          <textarea id="prazo-obs" rows="3" placeholder="Conteúdo, material permitido, link de entrega..."></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="cancelar-prazo">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar prazo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: disciplinas -->
+  <div class="modal-overlay" id="modal-disciplinas" hidden>
+    <div class="modal modal-small" role="dialog" aria-modal="true" aria-labelledby="modal-disciplinas-title">
+      <div class="modal-head">
+        <h2 id="modal-disciplinas-title">Disciplinas</h2>
+        <button class="modal-close" id="fechar-modal-disciplinas" type="button" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="form-disciplina" class="modal-form">
+        <label class="field">
+          <span class="field-label">Nova disciplina</span>
+          <input type="text" id="nova-disciplina" placeholder="Ex: Estrutura de Dados">
+        </label>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">Adicionar</button>
+        </div>
+      </form>
+      <ul class="disciplinas-lista" id="disciplinas-lista"></ul>
+    </div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
